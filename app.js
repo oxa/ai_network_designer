@@ -10,6 +10,7 @@ const topologyModal = document.getElementById("topologyModal");
 const topologyModalBody = document.getElementById("topologyModalBody");
 const closeTopologyModalButton = document.getElementById("closeTopologyModal");
 
+const MAX_TOTAL_GPUS = 2048;
 const numberFormatter = new Intl.NumberFormat("en-US");
 
 function clampPositiveInteger(value, fallback) {
@@ -686,6 +687,12 @@ function calculateEraDesign(inputs) {
   const switchPortSpeed = clampPositiveInteger(inputs.switchPortSpeed, 800);
   const portsPerSwitch = clampPositiveInteger(inputs.portsPerSwitch, 64);
 
+  if (totalGpus > MAX_TOTAL_GPUS) {
+    return {
+      error: `Total GPUs cannot exceed ${formatCount(MAX_TOTAL_GPUS)}.`,
+    };
+  }
+
   if (totalGpus % gpusPerNode !== 0) {
     return {
       error: "Total GPUs must be divisible by GPUs per node.",
@@ -882,11 +889,17 @@ function getInputs() {
 function syncTotalGpuConstraints() {
   const gpusPerNode = Number(gpusPerNodeInput.value) || 8;
   totalGpusInput.min = String(gpusPerNode);
+  totalGpusInput.max = String(MAX_TOTAL_GPUS);
   totalGpusInput.step = String(gpusPerNode);
 
   const totalGpus = Number(totalGpusInput.value);
   if (!Number.isFinite(totalGpus) || totalGpus < gpusPerNode) {
     totalGpusInput.value = String(gpusPerNode);
+    return;
+  }
+
+  if (totalGpus > MAX_TOTAL_GPUS) {
+    totalGpusInput.value = String(MAX_TOTAL_GPUS - (MAX_TOTAL_GPUS % gpusPerNode));
     return;
   }
 
