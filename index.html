@@ -33,68 +33,86 @@
           </div>
 
           <form id="designerForm" class="control-grid">
-            <label>
-              <span>Architecture Design</span>
-              <select name="architectureDesign">
-                <option value="ERA" selected>ERA</option>
-              </select>
-            </label>
+            <fieldset class="input-section">
+              <legend>Compute</legend>
 
-            <label>
-              <span>GPUs per node</span>
-              <select name="gpusPerNode" id="gpusPerNode">
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="4">4</option>
-                <option value="8" selected>8</option>
-              </select>
-            </label>
+              <label>
+                <span>Architecture Design</span>
+                <select name="architectureDesign" id="architectureDesign">
+                  <option value="ERA" selected>NVIDIA ERA</option>
+                </select>
+              </label>
 
-            <label>
-              <span>Total GPUs</span>
-              <input type="number" name="totalGpus" id="totalGpus" min="8" max="2048" step="8" value="512" />
-            </label>
+              <label>
+                <span>Scale Units</span>
+                <input type="number" name="scaleUnits" id="scaleUnits" min="1" step="1" value="4" />
+              </label>
 
-            <label>
-              <span>Rails per leaf</span>
-              <select name="railsPerLeaf">
-                <option value="1">1</option>
-                <option value="2" selected>2</option>
-                <option value="4">4</option>
-                <option value="8">8</option>
-              </select>
-            </label>
+              <label>
+                <span>Nodes per Scale Unit</span>
+                <input type="number" name="nodesPerScaleUnit" id="nodesPerScaleUnit" min="1" step="1" value="4" />
+              </label>
 
-            <label>
-              <span>NIC speed (Gbps)</span>
-              <select name="nicSpeed">
-                <option value="100">100</option>
-                <option value="200">200</option>
-                <option value="400" selected>400</option>
-                <option value="800">800</option>
-                <option value="1600">1.6T</option>
-              </select>
-            </label>
+              <label>
+                <span>GPUs per node</span>
+                <select name="gpusPerNode" id="gpusPerNode">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="4">4</option>
+                  <option value="8" selected>8</option>
+                </select>
+              </label>
 
-            <label>
-              <span>Switch port speed (Gbps)</span>
-              <select name="switchPortSpeed">
-                <option value="100">100</option>
-                <option value="200">200</option>
-                <option value="400">400</option>
-                <option value="800" selected>800</option>
-                <option value="1600">1.6T</option>
-              </select>
-            </label>
+              <label>
+                <span>Total GPUs</span>
+                <input type="number" name="totalGpus" id="totalGpus" min="8" max="2048" step="8" value="128" readonly />
+              </label>
+            </fieldset>
 
-            <label>
-              <span>Ports per switch</span>
-              <select name="portsPerSwitch">
-                <option value="32">32</option>
-                <option value="64" selected>64</option>
-                <option value="128">128</option>
-              </select>
-            </label>
+            <fieldset class="input-section">
+              <legend>Network</legend>
+
+              <label>
+                <span>Rails per leaf</span>
+                <select name="railsPerLeaf" id="railsPerLeaf">
+                  <option value="1">1</option>
+                  <option value="2" selected>2</option>
+                  <option value="4">4</option>
+                  <option value="8">8</option>
+                </select>
+              </label>
+
+              <label>
+                <span>NIC speed (Gbps)</span>
+                <select name="nicSpeed">
+                  <option value="100">100</option>
+                  <option value="200">200</option>
+                  <option value="400" selected>400</option>
+                  <option value="800">800</option>
+                  <option value="1600">1.6T</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Switch port speed (Gbps)</span>
+                <select name="switchPortSpeed">
+                  <option value="100">100</option>
+                  <option value="200">200</option>
+                  <option value="400">400</option>
+                  <option value="800" selected>800</option>
+                  <option value="1600">1.6T</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Ports per switch</span>
+                <select name="portsPerSwitch">
+                  <option value="32">32</option>
+                  <option value="64" selected>64</option>
+                  <option value="128">128</option>
+                </select>
+              </label>
+            </fieldset>
           </form>
 
           <div class="assumption-box" id="assumptions"></div>

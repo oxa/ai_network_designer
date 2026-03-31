@@ -4,8 +4,12 @@ const railGrid = document.getElementById("railGrid");
 const assumptions = document.getElementById("assumptions");
 const metricCardTemplate = document.getElementById("metricCardTemplate");
 const railCardTemplate = document.getElementById("railCardTemplate");
+const architectureDesignInput = document.getElementById("architectureDesign");
 const gpusPerNodeInput = document.getElementById("gpusPerNode");
+const scaleUnitsInput = document.getElementById("scaleUnits");
+const nodesPerScaleUnitInput = document.getElementById("nodesPerScaleUnit");
 const totalGpusInput = document.getElementById("totalGpus");
+const railsPerLeafInput = document.getElementById("railsPerLeaf");
 const topologyModal = document.getElementById("topologyModal");
 const topologyModalBody = document.getElementById("topologyModalBody");
 const closeTopologyModalButton = document.getElementById("closeTopologyModal");
@@ -419,10 +423,31 @@ function buildSharedFabricChart(leafs, design, chartId) {
 
   if (design.totalSpine === 0) {
     const pairedLeafs = leafs.slice(0, 2);
+    const showDirectConnectHeader = chartId.startsWith("modal");
+    const directLeafUplinkPorts = pairedLeafs[0]
+      ? pairedLeafs[0].segments
+          .filter((segment) => !segment.isUnused)
+          .reduce((sum, segment) => sum + segment.downlinks, 0)
+      : 0;
+    const directLeafBandwidthGbps = directLeafUplinkPorts * design.inputs.nicSpeed;
 
     return `
       <div class="shared-fabric-chart" data-spine-chart="true" data-chart-id="${chartId}">
         <svg class="spine-topology-overlay" aria-hidden="true"></svg>
+        ${
+          showDirectConnectHeader
+            ? `
+              <div class="shared-direct-row">
+                <div class="shared-direct-label" data-link-target="${chartId}-direct-target">
+                  Leafs Uplinks are directly connected
+                </div>
+                <div class="shared-direct-info">
+                  Leaf Uplinks are connected directly with ${formatSpeed(directLeafBandwidthGbps)} bandwidth capacity
+                </div>
+              </div>
+            `
+            : ""
+        }
         <div class="shared-leaf-grid">
           ${pairedLeafs
             .map(
@@ -435,7 +460,7 @@ function buildSharedFabricChart(leafs, design, chartId) {
                         .map((segment, segmentIndex) => {
                           const pairKey =
                             !segment.isUnused && pairedLeafs.length === 2
-                              ? `${chartId}-direct-${segment.railIndex}`
+                              ? `${chartId}-direct-target`
                               : "";
 
                           return `
@@ -444,9 +469,7 @@ function buildSharedFabricChart(leafs, design, chartId) {
                               style="--segment-color: ${segment.color}; --segment-soft-color: ${segment.softColor}; flex: ${segment.downlinks} 0 0;"
                               ${
                                 pairKey
-                                  ? leafIndex === 0
-                                    ? `data-link-source="${pairKey}" data-link-color="${segment.color}" data-link-direct="true" data-rail-index="${segment.railIndex}"`
-                                    : `data-link-target="${pairKey}"`
+                                  ? `data-link-source="${pairKey}" data-link-color="${segment.color}" data-link-direct="true" data-rail-index="${segment.railIndex}"`
                                   : ""
                               }
                             >
@@ -681,6 +704,8 @@ function closeTopologyModal() {
 
 function calculateEraDesign(inputs) {
   const gpusPerNode = clampPositiveInteger(inputs.gpusPerNode, 8);
+  const scaleUnits = clampPositiveInteger(inputs.scaleUnits, 4);
+  const nodesPerScaleUnit = clampPositiveInteger(inputs.nodesPerScaleUnit, 4);
   const totalGpus = clampPositiveInteger(inputs.totalGpus, 512);
   const railsPerLeaf = clampPositiveInteger(inputs.railsPerLeaf, 1);
   const nicSpeed = clampPositiveInteger(inputs.nicSpeed, 400);
@@ -708,6 +733,7 @@ function calculateEraDesign(inputs) {
   }
 
   const totalNodes = totalGpus / gpusPerNode;
+  const gpusPerScaleUnit = nodesPerScaleUnit * gpusPerNode;
   const maxClients = Math.floor(portsPerSwitch / 2);
   const totalAvailableDownlinks = maxClients * nicToSwitchRatio;
   const railSize = totalNodes;
@@ -728,6 +754,8 @@ function calculateEraDesign(inputs) {
     architecture: "ERA",
     inputs: {
       gpusPerNode,
+      scaleUnits,
+      nodesPerScaleUnit,
       totalGpus,
       railsPerLeaf,
       nicSpeed,
@@ -735,6 +763,7 @@ function calculateEraDesign(inputs) {
       portsPerSwitch,
     },
     totalNodes,
+    gpusPerScaleUnit,
     maxClients,
     nicToSwitchRatio,
     totalAvailableDownlinks,
@@ -825,6 +854,11 @@ function render(design) {
       note: "1 scale unit = 4 nodes",
     },
     {
+      label: "GPU per Scale Unit",
+      value: formatCount(design.gpusPerScaleUnit),
+      note: `${formatCount(design.inputs.nodesPerScaleUnit)} nodes per scale unit × ${formatCount(design.inputs.gpusPerNode)} GPUs per node`,
+    },
+    {
       label: "Switch to NIC Breakout",
       value: `${design.nicToSwitchRatio}:1`,
       note: `${formatSpeed(design.inputs.switchPortSpeed)} / ${formatSpeed(design.inputs.nicSpeed)}`,
@@ -878,6 +912,8 @@ function getInputs() {
   return {
     architectureDesign: String(formData.get("architectureDesign")),
     gpusPerNode: Number(formData.get("gpusPerNode")),
+    scaleUnits: Number(formData.get("scaleUnits")),
+    nodesPerScaleUnit: Number(formData.get("nodesPerScaleUnit")),
     totalGpus: Number(formData.get("totalGpus")),
     railsPerLeaf: Number(formData.get("railsPerLeaf")),
     nicSpeed: Number(formData.get("nicSpeed")),
@@ -886,31 +922,44 @@ function getInputs() {
   };
 }
 
-function syncTotalGpuConstraints() {
+function syncEraDerivedInputs() {
+  const isEra = architectureDesignInput.value === "ERA";
   const gpusPerNode = Number(gpusPerNodeInput.value) || 8;
+  let scaleUnits = clampPositiveInteger(Number(scaleUnitsInput.value), 4);
+  let nodesPerScaleUnit = clampPositiveInteger(Number(nodesPerScaleUnitInput.value), 4);
+
+  let totalGpus = scaleUnits * nodesPerScaleUnit * gpusPerNode;
+
+  if (totalGpus > MAX_TOTAL_GPUS) {
+    const maxNodesPerScaleUnit = Math.max(1, Math.floor(MAX_TOTAL_GPUS / (scaleUnits * gpusPerNode)));
+
+    if (maxNodesPerScaleUnit >= 1) {
+      nodesPerScaleUnit = maxNodesPerScaleUnit;
+      nodesPerScaleUnitInput.value = String(nodesPerScaleUnit);
+    } else {
+      scaleUnits = Math.max(1, Math.floor(MAX_TOTAL_GPUS / (gpusPerNode * nodesPerScaleUnit)));
+      scaleUnitsInput.value = String(scaleUnits);
+    }
+
+    totalGpus = scaleUnits * nodesPerScaleUnit * gpusPerNode;
+  }
+
   totalGpusInput.min = String(gpusPerNode);
   totalGpusInput.max = String(MAX_TOTAL_GPUS);
   totalGpusInput.step = String(gpusPerNode);
-
-  const totalGpus = Number(totalGpusInput.value);
-  if (!Number.isFinite(totalGpus) || totalGpus < gpusPerNode) {
-    totalGpusInput.value = String(gpusPerNode);
-    return;
-  }
-
-  if (totalGpus > MAX_TOTAL_GPUS) {
-    totalGpusInput.value = String(MAX_TOTAL_GPUS - (MAX_TOTAL_GPUS % gpusPerNode));
-    return;
-  }
-
-  if (totalGpus % gpusPerNode !== 0) {
-    totalGpusInput.value = String(Math.ceil(totalGpus / gpusPerNode) * gpusPerNode);
-  }
+  totalGpusInput.value = String(totalGpus);
+  totalGpusInput.readOnly = isEra;
+  railsPerLeafInput.disabled = isEra;
 }
 
 form.addEventListener("input", (event) => {
-  if (event.target === gpusPerNodeInput) {
-    syncTotalGpuConstraints();
+  if (
+    event.target === architectureDesignInput ||
+    event.target === gpusPerNodeInput ||
+    event.target === scaleUnitsInput ||
+    event.target === nodesPerScaleUnitInput
+  ) {
+    syncEraDerivedInputs();
   }
 
   render(calculateDesign(getInputs()));
@@ -977,7 +1026,7 @@ topologyModalBody.addEventListener("mouseout", (event) => {
   setActiveRailLinks(null);
 });
 
-syncTotalGpuConstraints();
+syncEraDerivedInputs();
 render(calculateDesign(getInputs()));
 
 function drawSpineTopologyLinks() {

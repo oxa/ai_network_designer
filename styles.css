@@ -124,6 +124,24 @@ h1 {
   gap: 14px;
 }
 
+.input-section {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid rgba(87, 68, 48, 0.1);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.5);
+  display: grid;
+  gap: 14px;
+}
+
+.input-section legend {
+  padding: 0 8px;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+}
+
 label {
   display: grid;
   gap: 8px;
@@ -146,6 +164,18 @@ input:focus,
 select:focus {
   outline: 2px solid rgba(15, 118, 110, 0.24);
   border-color: rgba(15, 118, 110, 0.34);
+}
+
+input[readonly] {
+  background: rgba(87, 68, 48, 0.08);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+select:disabled {
+  background: rgba(87, 68, 48, 0.08);
+  color: var(--muted);
+  cursor: not-allowed;
 }
 
 .assumption-box {
@@ -501,9 +531,49 @@ select:focus {
   z-index: 1;
 }
 
+.shared-direct-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 420px);
+  justify-content: center;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
 .shared-spine-box-card {
   display: grid;
   gap: 8px;
+}
+
+.shared-direct-box-card {
+  display: grid;
+  gap: 8px;
+}
+
+.shared-direct-label {
+  display: grid;
+  place-content: center;
+  min-height: 52px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 2px solid rgba(32, 22, 13, 0.75);
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.92rem;
+}
+
+.shared-direct-info {
+  display: grid;
+  place-content: center;
+  min-height: 52px;
+  padding: 10px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(87, 68, 48, 0.12);
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.88rem;
 }
 
 .spine-box-title {
